@@ -11,6 +11,10 @@ form {
   box-shadow: -3px 3px 3px gray;
 }
 
+.country {
+  width: 20ch;
+}
+
 .email,
 .password,
 .password-conf,

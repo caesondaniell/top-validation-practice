@@ -84,6 +84,7 @@ function buildForm () {
   const form = creator.form()
   const email = creator.formField('input', 'email', 'email', 'email')
   const country = creator.formField('select', 'country', 'country')
+  const option = creator.selectOption('', 'select country')
   const code = creator.formField('input', 'pcode', 'postal code')
   const pw = creator.formField('input', 'password', 'password', 'password')
   const pwConf = creator.formField(
@@ -100,6 +101,11 @@ function buildForm () {
   submit.type = 'submit'
   submit.textContent = 'submit'
 
+  country.querySelector('select').append(option)
+  countries.forEach((nation) => {
+    const opt = creator.selectOption(nation.countryCode, nation.countryName)
+    country.querySelector('select').append(opt)
+  })
   pw.append(ruleBox)
   form.append(email, country, code, pw, pwConf, submit)
 

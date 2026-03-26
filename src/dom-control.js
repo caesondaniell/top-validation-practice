@@ -1,4 +1,8 @@
-import { getAllCountries } from 'postal-code-checker'
+import { 
+  getAllCountries
+  , usePostalCodeValidation
+  , getCountryByCode
+} from 'postal-code-checker'
 
 const countries = getAllCountries()
 const creator = {
@@ -84,6 +88,7 @@ function buildForm () {
   const form = creator.form()
   const email = creator.formField('input', 'email', 'email', 'email')
   const country = creator.formField('select', 'country', 'country')
+  const countrySelect = country.querySelector('select')
   const option = creator.selectOption('', 'select country')
   const code = creator.formField('input', 'pcode', 'postal code')
   const pw = creator.formField('input', 'password', 'password', 'password')
@@ -101,10 +106,10 @@ function buildForm () {
   submit.type = 'submit'
   submit.textContent = 'submit'
 
-  country.querySelector('select').append(option)
+  countrySelect.append(option)
   countries.forEach((nation) => {
     const opt = creator.selectOption(nation.countryCode, nation.countryName)
-    country.querySelector('select').append(opt)
+    countrySelect.append(opt)
   })
   pw.append(ruleBox)
   form.append(email, country, code, pw, pwConf, submit)
@@ -113,3 +118,50 @@ function buildForm () {
 }
 
 document.body.append(buildForm())
+
+const listeners = (() => {
+  const email = document.getElementById('email')
+  const country = document.getElementById('country')
+  const code = document.getElementById('pcode')
+  const password = document.getElementById('password')
+  const pwConf = document.getElementById('password-conf')
+  const ruleBox = document.querySelector('.pw-rules')
+
+  country.addEventListener('change', () => {
+    const selected = getCountryByCode(country.value)
+    code.placeholder = ''
+    if (selected) {
+      const phText = selected.examplePostalCodes.length
+        ? `e.g., ${selected.examplePostalCodes}`
+        : ''
+      code.placeholder = phText
+      setCodeError(phText)
+    }
+  })
+  password.addEventListener('focus', () => ruleBox.hidden = false)
+  password.addEventListener('blur', () => {
+    ruleBox.hidden = true
+  })
+})()
+
+const constraints = {
+  email: "/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/i"
+  , password: ''
+}
+
+const errorMsgs = {
+  empty: 'required'
+  , email: 'Enter a valid address (e.g., me@email.com)'
+  , country: ''
+  , postalCode: ''
+  , password: ''
+  , passConf: 'Passwords must match'
+}
+
+function setCodeError (msg) {
+  errorMsgs.postalCode = `Enter a valid format\n${msg}`
+}
+
+function checkPasswords (first, second) {
+  if (first === second) return
+}

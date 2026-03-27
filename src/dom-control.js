@@ -7,20 +7,22 @@ import {
 const countries = getAllCountries()
 const creator = {
   element (tag) { return document.createElement(tag) }
-  , errorSpan (who) {
+  , errorLine (who) {
+    const para = this.p()
     const icon = this.icon('error')
     const span = this.span()
-    span.className = 'error'
-    span.dataset.label = who
-    span.hidden = true
-    span.append(icon)
-    return span
+    para.className = 'error'
+    para.dataset.label = who
+    para.hidden = true
+    para.append(icon)
+    para.append(span)
+    return para
   }
   , formField (...params) {
     const [tag, title, text, type] = params
     const label = this.label()
     const field = this[tag]()
-    const error = this.errorSpan()
+    const error = this.errorLine(title)
     field.id = title
     if (type) field.type = type
     label.className = title 
@@ -105,6 +107,8 @@ function buildForm () {
 
   submit.type = 'submit'
   submit.textContent = 'submit'
+  submit.disabled = true
+  submit.title = 'Complete all fields'
 
   countrySelect.append(option)
   countries.forEach((nation) => {
@@ -127,6 +131,20 @@ const listeners = (() => {
   const pwConf = document.getElementById('password-conf')
   const ruleBox = document.querySelector('.pw-rules')
 
+  email.addEventListener('input', () => {
+    const message = validateEmail(email)
+    const errLine = document.querySelector('#email + .error')
+    const errMsg = errLine.querySelector('span + span')
+    if (message) {
+      errLine.hidden = false
+      errLine.classList.add('active')
+      errMsg.textContent = message
+      console.log(errLine.textContent)
+    } else {
+      errLine.hidden = true
+      errLine.classList.remove('active')
+    }
+  })
   country.addEventListener('change', () => {
     const selected = getCountryByCode(country.value)
     code.placeholder = ''
@@ -145,8 +163,8 @@ const listeners = (() => {
 })()
 
 const constraints = {
-  email: "/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/i"
-  , password: ''
+  email: /^[a-zA-Z0-9.!#$%&'*+=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/
+  , password: [/^.{8,20}$/, /[a-z]+[A-Z]/, /\d/, /\W/]
 }
 
 const errorMsgs = {
@@ -155,13 +173,35 @@ const errorMsgs = {
   , country: ''
   , postalCode: ''
   , password: ''
-  , passConf: 'Passwords must match'
+  , passwordMatch: 'Passwords must match'
 }
 
 function setCodeError (msg) {
   errorMsgs.postalCode = `Enter a valid format\n${msg}`
 }
 
-function checkPasswords (first, second) {
-  if (first === second) return
+function validateEmail (node) {
+  const testString = node.value
+  const expression = new RegExp(constraints.email, 'i')
+  if (testString === '') {
+    node.classList.remove('valid', 'invalid')
+    return
+  }
+  if (!expression.test(testString)) {
+    node.classList.add('invalid')
+    node.classList.remove('valid')
+    return errorMsgs.email
+  } else {
+    node.classList.add('valid')
+    node.classList.remove('invalid')
+  }
+}
+
+function validatePassword (rules, regExp, value) {
+  rules.forEach((rule) => {
+    const expression = new RegExp (regExp[rules.indexOf(rule)], '')
+    if (expression.test(value)) {
+
+    }
+  })
 }

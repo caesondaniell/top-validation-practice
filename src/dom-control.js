@@ -38,6 +38,17 @@ const creator = {
     span.textContent = symbol
     return span
   }
+  , iconButton (...params) {
+    const button = this.button()
+    const icon = this.span()
+    const [symbol, aria] = params
+    icon.className = 'material-symbols-outlined'
+    icon.ariaLabel = aria || symbol
+    icon.textContent = symbol
+    button.title = aria
+    button.append(icon)
+    return button
+  }
   , ruleBox () {
     const box = this.div()
     const title = this.h4()
@@ -102,6 +113,8 @@ function buildForm () {
   )
   const ruleBox = creator.ruleBox()
   const submit = creator.button()
+  const showPW = creator.iconButton('visibility', 'display password')
+  const hidePW = creator.iconButton('visibility_off', 'hide password')
 
   form.toggleAttribute('novalidate')
 
@@ -110,13 +123,18 @@ function buildForm () {
   submit.disabled = true
   submit.title = 'Complete all fields'
 
+  showPW.id = 'show-pw'
+
+  hidePW.hidden = true
+  hidePW.id = 'hide-pw'
+
   countrySelect.append(option)
   countries.forEach((nation) => {
     const opt = creator.selectOption(nation.countryCode, nation.countryName)
     countrySelect.append(opt)
   })
   pw.append(ruleBox)
-  form.append(email, country, code, pw, pwConf, submit)
+  form.append(email, country, code, pw, pwConf, submit, showPW, hidePW)
 
   return form
 }
@@ -130,6 +148,8 @@ const listeners = (() => {
   const password = document.getElementById('password')
   const pwConf = document.getElementById('password-conf')
   const ruleBox = document.querySelector('.pw-rules')
+  const showPW = document.getElementById('show-pw')
+  const hidePW = document.getElementById('hide-pw')
 
   email.addEventListener('input', () => {
     const message = validateEmail(email)
@@ -159,6 +179,20 @@ const listeners = (() => {
   password.addEventListener('focus', () => ruleBox.hidden = false)
   password.addEventListener('blur', () => {
     ruleBox.hidden = true
+  })
+  showPW.addEventListener('click', (e) => {
+    e.preventDefault()
+    password.type = 'text'
+    pwConf.type = 'text'
+    hidePW.hidden = false
+    showPW.hidden = true
+  })
+  hidePW.addEventListener('click', (e) => {
+    e.preventDefault()
+    password.type = 'password'
+    pwConf.type = 'password'
+    hidePW.hidden = true
+    showPW.hidden = false
   })
 })()
 

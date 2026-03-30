@@ -147,6 +147,7 @@ function buildForm () {
 document.body.append(buildForm())
 
 const listeners = (() => {
+  const form = document.querySelector('form')
   const email = document.getElementById('email')
   const country = document.getElementById('country')
   const code = document.getElementById('pcode')
@@ -155,6 +156,8 @@ const listeners = (() => {
   const ruleBox = document.querySelector('.pw-rules')
   const showPW = document.getElementById('show-pw')
   const hidePW = document.getElementById('hide-pw')
+  const submit = document.querySelector('button[type="submit"]')
+  const codeEvents = ['input', 'focus']
 
   email.addEventListener('input', () => {
     const message = validateEmail(email)
@@ -169,6 +172,7 @@ const listeners = (() => {
       errLine.classList.remove('active')
     }
   })
+  email.addEventListener('blur', () => flagBlankField(email))
   country.addEventListener('change', () => {
     const selected = getCountryByCode(country.value)
     code.placeholder = ''
@@ -180,22 +184,27 @@ const listeners = (() => {
         : ''
       code.placeholder = phText
       setCodeError(phText)
+      code.focus()
     }
   })
-  code.addEventListener('input', () => {
-    const selected = country.value
-    const message = validateCode(code, selected)
-    const errLine = document.querySelector('#pcode + .error')
-    const errMsg = errLine.querySelector('span + span')
-    if (message) {
-      errLine.hidden = false
-      errLine.classList.add('active')
-      errMsg.textContent = message
-    } else {
-      errLine.hidden = true
-      errLine.classList.remove('active')
-    }
+  country.addEventListener('blur', flagBlankCountry)
+  codeEvents.forEach((eventType) => {
+      code.addEventListener(eventType, () => {
+      const selected = country.value
+      const message = validateCode(code, selected)
+      const errLine = document.querySelector('#pcode + .error')
+      const errMsg = errLine.querySelector('span + span')
+      if (message) {
+        errLine.hidden = false
+        errLine.classList.add('active')
+        errMsg.textContent = message
+      } else {
+        errLine.hidden = true
+        errLine.classList.remove('active')
+      }
+    })
   })
+  code.addEventListener('blur', () => flagBlankField(code))
   password.addEventListener('focus', () => ruleBox.hidden = false)
   password.addEventListener('input', () => {
     const message = validatePassword(password)
@@ -210,6 +219,10 @@ const listeners = (() => {
       errLine.classList.remove('active')
     }
   })
+  password.addEventListener('blur', () => {
+    ruleBox.hidden = true
+    flagBlankField(password)
+  })
   pwConf.addEventListener('input', () => {
     const message = validatePassMatch(pwConf, password.value)
     const errLine = document.querySelector('#password-conf + .error')
@@ -223,9 +236,7 @@ const listeners = (() => {
       errLine.classList.remove('active')
     }
   })
-  password.addEventListener('blur', () => {
-    ruleBox.hidden = true
-  })
+  pwConf.addEventListener('blur', () => flagBlankField(pwConf))
   showPW.addEventListener('click', (e) => {
     e.preventDefault()
     password.type = 'text'
@@ -240,6 +251,21 @@ const listeners = (() => {
     hidePW.hidden = true
     showPW.hidden = false
   })
+  form.addEventListener('input', validateForm)
+  form.addEventListener('change', validateForm)
+  submit.addEventListener('click', (e) => e.preventDefault())
+
+  function validateForm () {
+    const errors = document.querySelectorAll('.active')
+    const errorFree = errors.length === 0
+    const filledIn =
+      email.value !== '' &&
+      country.value !== '' &&
+      code.value !== '' &&
+      password.value !== '' &&
+      pwConf.value !== ''
+    submit.disabled = errorFree && filledIn ? false : true
+  }
 })()
 
 const constraints = {
@@ -258,6 +284,34 @@ const errorMsgs = {
 
 function setCodeError (msg) {
   errorMsgs.postalCode = `Enter a valid format\n${msg}`
+}
+
+function flagBlankCountry () {
+    const country = document.getElementById('country')
+    const errLine = document.querySelector('#country + .error')
+    const errMsg = errLine.querySelector('span + span')
+    if (country.value === '') {
+      errLine.hidden = false
+      errLine.classList.add('active')
+      errMsg.textContent = errorMsgs.empty
+      country.classList.add('invalid')
+    } else {
+      errLine.hidden = true
+      errLine.classList.remove('active')
+      country.classList.remove('invalid')
+    }
+}
+
+function flagBlankField (node) {
+    const errLine = node.nextElementSibling
+    const errMsg = errLine.querySelector('span + span')
+    if (node.value === '') {
+      errLine.hidden = false
+      errLine.classList.add('active')
+      errMsg.textContent = errorMsgs.empty
+      node.classList.add('invalid')
+      node.classList.remove('valid')
+    }
 }
 
 function validateCode (node, testParam) {

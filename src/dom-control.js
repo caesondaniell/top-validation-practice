@@ -90,6 +90,7 @@ const tags = [
   , 'select'
   , 'span'
 ]
+const { validatePostalCode } = usePostalCodeValidation()
 
 tags.forEach((tag) => {
   creator[tag] = function () {
@@ -117,6 +118,10 @@ function buildForm () {
   const hidePW = creator.iconButton('visibility_off', 'hide password')
 
   form.toggleAttribute('novalidate')
+
+  code.firstElementChild.disabled = true
+
+  pwConf.firstElementChild.disabled = true
 
   submit.type = 'submit'
   submit.textContent = 'submit'
@@ -159,7 +164,6 @@ const listeners = (() => {
       errLine.hidden = false
       errLine.classList.add('active')
       errMsg.textContent = message
-      console.log(errLine.textContent)
     } else {
       errLine.hidden = true
       errLine.classList.remove('active')
@@ -168,7 +172,9 @@ const listeners = (() => {
   country.addEventListener('change', () => {
     const selected = getCountryByCode(country.value)
     code.placeholder = ''
+    code.disabled = true
     if (selected) {
+      code.disabled = false
       const phText = selected.examplePostalCodes.length
         ? `e.g., ${selected.examplePostalCodes}`
         : ''
@@ -176,7 +182,47 @@ const listeners = (() => {
       setCodeError(phText)
     }
   })
+  code.addEventListener('input', () => {
+    const selected = country.value
+    const message = validateCode(code, selected)
+    const errLine = document.querySelector('#pcode + .error')
+    const errMsg = errLine.querySelector('span + span')
+    if (message) {
+      errLine.hidden = false
+      errLine.classList.add('active')
+      errMsg.textContent = message
+    } else {
+      errLine.hidden = true
+      errLine.classList.remove('active')
+    }
+  })
   password.addEventListener('focus', () => ruleBox.hidden = false)
+  password.addEventListener('input', () => {
+    const message = validatePassword(password)
+    const errLine = document.querySelector('#password + .error')
+    const errMsg = errLine.querySelector('span + span')
+    if (message) {
+      errLine.hidden = false
+      errLine.classList.add('active')
+      errMsg.textContent = message
+    } else {
+      errLine.hidden = true
+      errLine.classList.remove('active')
+    }
+  })
+  pwConf.addEventListener('input', () => {
+    const message = validatePassMatch(pwConf, password.value)
+    const errLine = document.querySelector('#password-conf + .error')
+    const errMsg = errLine.querySelector('span + span')
+    if (message) {
+      errLine.hidden = false
+      errLine.classList.add('active')
+      errMsg.textContent = message
+    } else {
+      errLine.hidden = true
+      errLine.classList.remove('active')
+    }
+  })
   password.addEventListener('blur', () => {
     ruleBox.hidden = true
   })
@@ -206,12 +252,28 @@ const errorMsgs = {
   , email: 'Enter a valid address (e.g., me@email.com)'
   , country: ''
   , postalCode: ''
-  , password: ''
+  , password: 'Not strong enough'
   , passwordMatch: 'Passwords must match'
 }
 
 function setCodeError (msg) {
   errorMsgs.postalCode = `Enter a valid format\n${msg}`
+}
+
+function validateCode (node, testParam) {
+  const testString = node.value.toUpperCase()
+  if (testString === '') {
+    node.classList.remove('valid', 'invalid')
+    return
+  }
+  if (!validatePostalCode(testParam, testString)) {
+    node.classList.add('invalid')
+    node.classList.remove('valid')
+    return errorMsgs.postalCode
+  } else {
+    node.classList.add('valid')
+    node.classList.remove('invalid')
+  }
 }
 
 function validateEmail (node) {
@@ -231,11 +293,54 @@ function validateEmail (node) {
   }
 }
 
-function validatePassword (rules, regExp, value) {
-  rules.forEach((rule) => {
-    const expression = new RegExp (regExp[rules.indexOf(rule)], '')
-    if (expression.test(value)) {
+function validatePassMatch (node, string) {
+  if (node.value === '') {
+    node.classList.remove('valid', 'invalid')
+    return
+  }
+  if (node.value !== string) {
+    node.classList.add('invalid')
+    node.classList.remove('valid')
+    return errorMsgs.passwordMatch
+  } else {
+    node.classList.add('valid')
+    node.classList.remove('invalid')
+  }
+}
 
+function validatePassword (node) {
+  const conf = document.getElementById('password-conf')
+  const rules = document.querySelectorAll('.rule')
+  const regExp = constraints.password
+  let unmet = 0
+  if (node.value === '') {
+    node.classList.remove('valid', 'invalid')
+    conf.disabled = true
+    rules.forEach((rule) => {
+      rule.classList.remove('met')
+      rule.firstElementChild.textContent = 'close'
+    })
+    return
+  }
+  regExp.forEach((exp) => {
+    const rule = rules[regExp.indexOf(exp)]
+    if (exp.test(node.value)) {
+      rule.classList.add('met')
+      rule.firstElementChild.textContent = 'check'
+    } else {
+      rule.classList.remove('met')
+      rule.firstElementChild.textContent = 'close'
+      unmet++
     }
   })
+  if (unmet) {
+    node.classList.add('invalid')
+    node.classList.remove('valid')
+    conf.disabled = true
+    return errorMsgs.password
+  } else {
+    node.classList.add('valid')
+    node.classList.remove('invalid')
+    conf.disabled = false
+  }
 }

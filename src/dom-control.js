@@ -1,5 +1,4 @@
 import { getAllCountries, getCountryByCode } from 'postal-code-checker'
-import * as validate from './validate.js'
 
 const countries = getAllCountries()
 const creator = {
@@ -94,7 +93,46 @@ tags.forEach((tag) => {
   }
 })
 
-function buildForm () {
+function addListeners () {
+  const country = document.getElementById('country')
+  const code = document.getElementById('pcode')
+  const password = document.getElementById('password')
+  const pwConf = document.getElementById('password-conf')
+  const ruleBox = document.querySelector('.pw-rules')
+  const showPW = document.getElementById('show-pw')
+  const hidePW = document.getElementById('hide-pw')
+  const submit = document.querySelector('button[type="submit"]')
+
+  country.addEventListener('change', () => {
+    const selected = getCountryByCode(country.value)
+    code.placeholder = ''
+    code.disabled = true
+    if (selected) {
+      code.disabled = false
+      const phText = selected.examplePostalCodes.length
+        ? `e.g., ${selected.examplePostalCodes}`
+        : ''
+      code.placeholder = phText
+    }
+  })
+  showPW.addEventListener('click', (e) => {
+    e.preventDefault()
+    password.type = 'text'
+    pwConf.type = 'text'
+    hidePW.hidden = false
+    showPW.hidden = true
+  })
+  hidePW.addEventListener('click', (e) => {
+    e.preventDefault()
+    password.type = 'password'
+    pwConf.type = 'password'
+    hidePW.hidden = true
+    showPW.hidden = false
+  })
+  submit.addEventListener('click', (e) => e.preventDefault())
+}
+
+export function renderForm () {
   const form = creator.form()
   const email = creator.formField('input', 'email', 'email', 'email')
   const country = creator.formField('select', 'country', 'country')
@@ -117,12 +155,8 @@ function buildForm () {
 
   code.firstElementChild.disabled = true
 
-  pwConf.firstElementChild.disabled = true
-
   submit.type = 'submit'
   submit.textContent = 'submit'
-  submit.disabled = true
-  submit.title = 'Complete all fields'
 
   showPW.id = 'show-pw'
 
@@ -136,99 +170,7 @@ function buildForm () {
   })
   pw.append(ruleBox)
   form.append(email, country, code, pw, pwConf, submit, showPW, hidePW)
+  document.body.append(form)
 
-  return form
+  addListeners()
 }
-
-document.body.append(buildForm())
-
-const listeners = (() => {
-  const form = document.querySelector('form')
-  const email = document.getElementById('email')
-  const country = document.getElementById('country')
-  const code = document.getElementById('pcode')
-  const password = document.getElementById('password')
-  const pwConf = document.getElementById('password-conf')
-  const ruleBox = document.querySelector('.pw-rules')
-  const showPW = document.getElementById('show-pw')
-  const hidePW = document.getElementById('hide-pw')
-  const submit = document.querySelector('button[type="submit"]')
-  const codeEvents = ['input', 'focus']
-
-  email.addEventListener('input', () => {
-    const message = validate.email(email)
-    activateError('email', message)
-  })
-  email.addEventListener('blur', () => validate.blankField(email))
-  country.addEventListener('change', () => {
-    const selected = getCountryByCode(country.value)
-    code.placeholder = ''
-    code.disabled = true
-    if (selected) {
-      code.disabled = false
-      const phText = selected.examplePostalCodes.length
-        ? `e.g., ${selected.examplePostalCodes}`
-        : ''
-      code.placeholder = phText
-      validate.setCodeError(phText)
-      code.focus()
-    }
-  })
-  country.addEventListener('blur', validate.blankCountry)
-  codeEvents.forEach((eventType) => {
-      code.addEventListener(eventType, () => {
-      const selected = country.value
-      const message = validate.code(code, selected)
-      activateError('pcode', message)
-    })
-  })
-  code.addEventListener('blur', () => validate.blankField(code))
-  password.addEventListener('focus', () => ruleBox.hidden = false)
-  password.addEventListener('input', () => {
-    const message = validate.password(password)
-    activateError('password', message)
-  })
-  password.addEventListener('blur', () => {
-    ruleBox.hidden = true
-    validate.blankField(password)
-  })
-  pwConf.addEventListener('input', () => {
-    const message = validate.passMatch(pwConf, password.value)
-    activateError('password-conf', message)
-  })
-  pwConf.addEventListener('blur', () => validate.blankField(pwConf))
-  showPW.addEventListener('click', (e) => {
-    e.preventDefault()
-    password.type = 'text'
-    pwConf.type = 'text'
-    hidePW.hidden = false
-    showPW.hidden = true
-  })
-  hidePW.addEventListener('click', (e) => {
-    e.preventDefault()
-    password.type = 'password'
-    pwConf.type = 'password'
-    hidePW.hidden = true
-    showPW.hidden = false
-  })
-  form.addEventListener('input', () => {
-    submit.disabled = validate.form(form) ? false : true
-  })
-  form.addEventListener('change', () => {
-    submit.disabled = validate.form(form) ? false : true
-  })
-  submit.addEventListener('click', (e) => e.preventDefault())
-
-  function activateError (id, message) {
-    const errLine = document.querySelector(`#${id} + .error`)
-    const errMsg = errLine.querySelector('span + span')
-    if (message) {
-      errLine.hidden = false
-      errLine.classList.add('active')
-      errMsg.textContent = message
-    } else {
-      errLine.hidden = true
-      errLine.classList.remove('active')
-    }
-  }
-})()

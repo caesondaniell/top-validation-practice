@@ -1,2 +1,6 @@
 import './style.css'
-import './dom-control.js'
+import { renderForm } from './dom-control.js'
+import { addValidation } from './validate.js'
+
+renderForm()
+addValidation()

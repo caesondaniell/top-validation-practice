@@ -1,8 +1,5 @@
-import { 
-  getAllCountries
-  , usePostalCodeValidation
-  , getCountryByCode
-} from 'postal-code-checker'
+import { getAllCountries, getCountryByCode } from 'postal-code-checker'
+import * as validate from './validate.js'
 
 const countries = getAllCountries()
 const creator = {
@@ -90,7 +87,6 @@ const tags = [
   , 'select'
   , 'span'
 ]
-const { validatePostalCode } = usePostalCodeValidation()
 
 tags.forEach((tag) => {
   creator[tag] = function () {
@@ -160,19 +156,10 @@ const listeners = (() => {
   const codeEvents = ['input', 'focus']
 
   email.addEventListener('input', () => {
-    const message = validateEmail(email)
-    const errLine = document.querySelector('#email + .error')
-    const errMsg = errLine.querySelector('span + span')
-    if (message) {
-      errLine.hidden = false
-      errLine.classList.add('active')
-      errMsg.textContent = message
-    } else {
-      errLine.hidden = true
-      errLine.classList.remove('active')
-    }
+    const message = validate.email(email)
+    activateError('email', message)
   })
-  email.addEventListener('blur', () => flagBlankField(email))
+  email.addEventListener('blur', () => validate.blankField(email))
   country.addEventListener('change', () => {
     const selected = getCountryByCode(country.value)
     code.placeholder = ''
@@ -183,60 +170,33 @@ const listeners = (() => {
         ? `e.g., ${selected.examplePostalCodes}`
         : ''
       code.placeholder = phText
-      setCodeError(phText)
+      validate.setCodeError(phText)
       code.focus()
     }
   })
-  country.addEventListener('blur', flagBlankCountry)
+  country.addEventListener('blur', validate.blankCountry)
   codeEvents.forEach((eventType) => {
       code.addEventListener(eventType, () => {
       const selected = country.value
-      const message = validateCode(code, selected)
-      const errLine = document.querySelector('#pcode + .error')
-      const errMsg = errLine.querySelector('span + span')
-      if (message) {
-        errLine.hidden = false
-        errLine.classList.add('active')
-        errMsg.textContent = message
-      } else {
-        errLine.hidden = true
-        errLine.classList.remove('active')
-      }
+      const message = validate.code(code, selected)
+      activateError('pcode', message)
     })
   })
-  code.addEventListener('blur', () => flagBlankField(code))
+  code.addEventListener('blur', () => validate.blankField(code))
   password.addEventListener('focus', () => ruleBox.hidden = false)
   password.addEventListener('input', () => {
-    const message = validatePassword(password)
-    const errLine = document.querySelector('#password + .error')
-    const errMsg = errLine.querySelector('span + span')
-    if (message) {
-      errLine.hidden = false
-      errLine.classList.add('active')
-      errMsg.textContent = message
-    } else {
-      errLine.hidden = true
-      errLine.classList.remove('active')
-    }
+    const message = validate.password(password)
+    activateError('password', message)
   })
   password.addEventListener('blur', () => {
     ruleBox.hidden = true
-    flagBlankField(password)
+    validate.blankField(password)
   })
   pwConf.addEventListener('input', () => {
-    const message = validatePassMatch(pwConf, password.value)
-    const errLine = document.querySelector('#password-conf + .error')
-    const errMsg = errLine.querySelector('span + span')
-    if (message) {
-      errLine.hidden = false
-      errLine.classList.add('active')
-      errMsg.textContent = message
-    } else {
-      errLine.hidden = true
-      errLine.classList.remove('active')
-    }
+    const message = validate.passMatch(pwConf, password.value)
+    activateError('password-conf', message)
   })
-  pwConf.addEventListener('blur', () => flagBlankField(pwConf))
+  pwConf.addEventListener('blur', () => validate.blankField(pwConf))
   showPW.addEventListener('click', (e) => {
     e.preventDefault()
     password.type = 'text'
@@ -251,150 +211,24 @@ const listeners = (() => {
     hidePW.hidden = true
     showPW.hidden = false
   })
-  form.addEventListener('input', validateForm)
-  form.addEventListener('change', validateForm)
+  form.addEventListener('input', () => {
+    submit.disabled = validate.form(form) ? false : true
+  })
+  form.addEventListener('change', () => {
+    submit.disabled = validate.form(form) ? false : true
+  })
   submit.addEventListener('click', (e) => e.preventDefault())
 
-  function validateForm () {
-    const errors = document.querySelectorAll('.active')
-    const errorFree = errors.length === 0
-    const filledIn =
-      email.value !== '' &&
-      country.value !== '' &&
-      code.value !== '' &&
-      password.value !== '' &&
-      pwConf.value !== ''
-    submit.disabled = errorFree && filledIn ? false : true
-  }
-})()
-
-const constraints = {
-  email: /^[a-zA-Z0-9.!#$%&'*+=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/
-  , password: [/^.{8,20}$/, /[a-z]+[A-Z]/, /\d/, /\W/]
-}
-
-const errorMsgs = {
-  empty: 'required'
-  , email: 'Enter a valid address (e.g., me@email.com)'
-  , country: ''
-  , postalCode: ''
-  , password: 'Not strong enough'
-  , passwordMatch: 'Passwords must match'
-}
-
-function setCodeError (msg) {
-  errorMsgs.postalCode = `Enter a valid format\n${msg}`
-}
-
-function flagBlankCountry () {
-    const country = document.getElementById('country')
-    const errLine = document.querySelector('#country + .error')
+  function activateError (id, message) {
+    const errLine = document.querySelector(`#${id} + .error`)
     const errMsg = errLine.querySelector('span + span')
-    if (country.value === '') {
+    if (message) {
       errLine.hidden = false
       errLine.classList.add('active')
-      errMsg.textContent = errorMsgs.empty
-      country.classList.add('invalid')
+      errMsg.textContent = message
     } else {
       errLine.hidden = true
       errLine.classList.remove('active')
-      country.classList.remove('invalid')
     }
-}
-
-function flagBlankField (node) {
-    const errLine = node.nextElementSibling
-    const errMsg = errLine.querySelector('span + span')
-    if (node.value === '') {
-      errLine.hidden = false
-      errLine.classList.add('active')
-      errMsg.textContent = errorMsgs.empty
-      node.classList.add('invalid')
-      node.classList.remove('valid')
-    }
-}
-
-function validateCode (node, testParam) {
-  const testString = node.value.toUpperCase()
-  if (testString === '') {
-    node.classList.remove('valid', 'invalid')
-    return
   }
-  if (!validatePostalCode(testParam, testString)) {
-    node.classList.add('invalid')
-    node.classList.remove('valid')
-    return errorMsgs.postalCode
-  } else {
-    node.classList.add('valid')
-    node.classList.remove('invalid')
-  }
-}
-
-function validateEmail (node) {
-  const testString = node.value
-  const expression = new RegExp(constraints.email, 'i')
-  if (testString === '') {
-    node.classList.remove('valid', 'invalid')
-    return
-  }
-  if (!expression.test(testString)) {
-    node.classList.add('invalid')
-    node.classList.remove('valid')
-    return errorMsgs.email
-  } else {
-    node.classList.add('valid')
-    node.classList.remove('invalid')
-  }
-}
-
-function validatePassMatch (node, string) {
-  if (node.value === '') {
-    node.classList.remove('valid', 'invalid')
-    return
-  }
-  if (node.value !== string) {
-    node.classList.add('invalid')
-    node.classList.remove('valid')
-    return errorMsgs.passwordMatch
-  } else {
-    node.classList.add('valid')
-    node.classList.remove('invalid')
-  }
-}
-
-function validatePassword (node) {
-  const conf = document.getElementById('password-conf')
-  const rules = document.querySelectorAll('.rule')
-  const regExp = constraints.password
-  let unmet = 0
-  if (node.value === '') {
-    node.classList.remove('valid', 'invalid')
-    conf.disabled = true
-    rules.forEach((rule) => {
-      rule.classList.remove('met')
-      rule.firstElementChild.textContent = 'close'
-    })
-    return
-  }
-  regExp.forEach((exp) => {
-    const rule = rules[regExp.indexOf(exp)]
-    if (exp.test(node.value)) {
-      rule.classList.add('met')
-      rule.firstElementChild.textContent = 'check'
-    } else {
-      rule.classList.remove('met')
-      rule.firstElementChild.textContent = 'close'
-      unmet++
-    }
-  })
-  if (unmet) {
-    node.classList.add('invalid')
-    node.classList.remove('valid')
-    conf.disabled = true
-    return errorMsgs.password
-  } else {
-    node.classList.add('valid')
-    node.classList.remove('invalid')
-    conf.disabled = false
-  }
-}
+})()
